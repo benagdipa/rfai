@@ -1,23 +1,33 @@
 import axios from 'axios';
-import { logout } from './auth'; // Assuming auth utilities are in the same lib folder
 
 // Base configuration
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000', // Adjusted for React (not Next.js)
-  timeout: 10000, // 10-second timeout
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000', // Configurable via env
+  timeout: 10000, // Default timeout, overridable per request
   headers: {
-    'Content-Type': 'application/json', // Default content type
+    'Content-Type': 'application/json',
   },
 });
+
+// Variables to manage token refresh concurrency
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+// Helper to notify subscribers after token refresh
+const onTokenRefreshed = (token) => {
+  refreshSubscribers.forEach((callback) => callback(token));
+  refreshSubscribers = [];
+};
 
 // Request interceptor for authentication
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') { // Browser-only logic
+      const token = localStorage.getItem('token'); // TODO: Consider migrating to Cookies
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
-    // Preserve Content-Type set by specific requests (e.g., multipart/form-data)
     return config;
   },
   (error) => {
@@ -28,58 +38,75 @@ api.interceptors.request.use(
 
 // Response interceptor for error handling and token refresh
 api.interceptors.response.use(
-  (response) => response, // Pass successful responses unchanged
+  (response) => response, // Pass through successful responses
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 Unauthorized (e.g., token expired)
+    // Handle 401 Unauthorized with token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true; // Mark as retried to avoid infinite loops
-      try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) throw new Error('No refresh token available');
+      originalRequest._retry = true;
 
-        const response = await axios.post(
-          `${api.defaults.baseURL}/auth/refresh`,
-          { refresh_token: refreshToken },
-          { headers: { 'Content-Type': 'application/json' } }
-        );
+      if (typeof window !== 'undefined') { // Browser-only logic
+        if (!isRefreshing) {
+          isRefreshing = true;
+          try {
+            const refreshToken = localStorage.getItem('refresh_token'); // TODO: Consider Cookies
+            if (!refreshToken) throw new Error('No refresh token available');
 
-        const { access_token } = response.data;
-        localStorage.setItem('token', access_token);
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        return api(originalRequest); // Retry original request with new token
-      } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
-        await logout(); // Logout user if refresh fails
-        window.location.href = '/login'; // Redirect to login
-        return Promise.reject(refreshError);
+            const response = await axios.post(
+              `${api.defaults.baseURL}/auth/refresh`,
+              { refresh_token: refreshToken },
+              { headers: { 'Content-Type': 'application/json' } }
+            );
+
+            const { access_token } = response.data;
+            localStorage.setItem('token', access_token); // Update token
+            isRefreshing = false;
+            onTokenRefreshed(access_token); // Notify subscribers
+            originalRequest.headers.Authorization = `Bearer ${access_token}`;
+            return api(originalRequest); // Retry original request
+          } catch (refreshError) {
+            isRefreshing = false;
+            refreshSubscribers = [];
+            console.error('Token refresh failed:', refreshError);
+            await import('./auth').then(({ logout }) => logout()); // Dynamic import
+            window.location.href = '/login'; // Redirect to login
+            return Promise.reject(refreshError);
+          }
+        }
+
+        // Queue requests during refresh
+        return new Promise((resolve) => {
+          refreshSubscribers.push((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(api(originalRequest));
+          });
+        });
       }
     }
 
-    // Handle other errors
-    const errorMessage =
-      error.response?.data?.detail ||
-      error.message ||
-      'An unexpected error occurred';
+    // Generic error handling
+    const errorMessage = error.response?.data?.detail || error.message || 'An unexpected error occurred';
     console.error('API error:', errorMessage);
+    // TODO: Integrate with UI notification (e.g., react-hot-toast)
+    // Example: toast.error(errorMessage);
     return Promise.reject(new Error(errorMessage));
   }
 );
 
-// Utility functions for common HTTP methods
+// HTTP method helpers with configurable options
 export const get = async (url, config = {}) => {
   try {
-    const response = await api.get(url, config);
+    const response = await api.get(url, { ...config, timeout: config.timeout || 10000 });
     return response.data;
   } catch (error) {
-    throw error; // Let caller handle the error
+    throw error;
   }
 };
 
 export const post = async (url, data, config = {}) => {
   try {
-    const response = await api.post(url, data, config);
+    const response = await api.post(url, data, { ...config, timeout: config.timeout || 10000 });
     return response.data;
   } catch (error) {
     throw error;
@@ -88,7 +115,7 @@ export const post = async (url, data, config = {}) => {
 
 export const put = async (url, data, config = {}) => {
   try {
-    const response = await api.put(url, data, config);
+    const response = await api.put(url, data, { ...config, timeout: config.timeout || 10000 });
     return response.data;
   } catch (error) {
     throw error;
@@ -97,12 +124,20 @@ export const put = async (url, data, config = {}) => {
 
 export const del = async (url, config = {}) => {
   try {
-    const response = await api.delete(url, config);
+    const response = await api.delete(url, { ...config, timeout: config.timeout || 10000 });
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-// Export the axios instance for custom usage if needed
+// Export the Axios instance for custom usage if needed
 export default api;
+
+/**
+ * Notes for Future Improvements:
+ * - Security: Replace localStorage with HTTP-only cookies (e.g., using js-cookie).
+ *   Example: import Cookies from 'js-cookie'; const token = Cookies.get('token');
+ * - UI Feedback: Integrate a notification library (e.g., react-hot-toast) for error messages.
+ * - TypeScript: Add types for better type safety, e.g., export const get = async <T>(url: string) => Promise<T>;
+ */

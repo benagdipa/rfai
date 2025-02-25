@@ -1,8 +1,8 @@
 {
-  "dashboard.js -> ../components/NetworkMap": {
-    "id": "dashboard.js -> ../components/NetworkMap",
+  "../lib/api.js -> ./auth": {
+    "id": "../lib/api.js -> ./auth",
     "files": [
-      "static/chunks/components_NetworkMap_js.js"
+      "static/chunks/lib_auth_js.js"
     ]
   }
 }

@@ -1,39 +1,39 @@
 import { createTheme } from '@mui/material/styles';
 
-// Base theme configuration (light mode by default)
+// Base theme configuration
 const baseTheme = {
   palette: {
     primary: {
-      main: '#1976d2', // Matches globals.css --primary-main
+      main: '#1976d2',
       light: '#4791db',
       dark: '#115293',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#dc004e', // Matches globals.css --secondary-main (adjusted for consistency)
+      main: '#dc004e',
       light: '#e33371',
       dark: '#9a0036',
       contrastText: '#ffffff',
     },
     error: {
-      main: '#d32f2f', // Matches globals.css --error-main
+      main: '#d32f2f',
       light: '#ef5350',
       dark: '#c62828',
     },
     success: {
-      main: '#2e7d32', // Matches globals.css --success-main
+      main: '#2e7d32',
       light: '#4caf50',
       dark: '#1b5e20',
     },
     background: {
-      default: '#f0f2f5', // Matches globals.css --background-default (light mode)
-      paper: '#ffffff', // Matches globals.css --background-paper (light mode)
+      default: '#f0f2f5', // Light mode
+      paper: '#ffffff',
     },
     text: {
-      primary: '#212121', // Matches globals.css --text-primary (light mode)
-      secondary: '#757575', // Matches globals.css --text-secondary (light mode)
+      primary: '#212121',
+      secondary: '#757575',
     },
-    mode: 'light', // Default mode, overridden in _app.js
+    mode: 'light', // Default, overridden in _app.js
   },
   typography: {
     fontFamily: 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
@@ -41,7 +41,7 @@ const baseTheme = {
       fontSize: '2rem',
       fontWeight: 500,
       '@media (max-width:600px)': {
-        fontSize: '1.5rem', // Responsive adjustment
+        fontSize: '1.5rem',
       },
     },
     h6: {
@@ -51,21 +51,8 @@ const baseTheme = {
         fontSize: '1.1rem',
       },
     },
-    body1: {
-      fontSize: '1rem',
-      '@media (max-width:600px)': {
-        fontSize: '0.9rem',
-      },
-    },
-    body2: {
-      fontSize: '0.875rem',
-      '@media (max-width:600px)': {
-        fontSize: '0.8rem',
-      },
-    },
   },
   components: {
-    // Custom overrides for MUI components
     MuiAppBar: {
       styleOverrides: {
         root: {
@@ -76,7 +63,7 @@ const baseTheme = {
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundColor: 'var(--background-paper)', // Sync with CSS variables
+          backgroundColor: 'var(--background-paper)', // Still syncs with CSS if kept
           transition: 'background-color 0.3s ease',
         },
       },
@@ -84,34 +71,28 @@ const baseTheme = {
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'none', // Avoid all-caps by default
+          textTransform: 'none',
           padding: '8px 16px',
         },
         containedPrimary: {
           '&:hover': {
-            backgroundColor: '#115293', // Darker shade of primary.main
+            backgroundColor: '#115293',
           },
-        },
-      },
-    },
-    MuiChip: {
-      styleOverrides: {
-        root: {
-          borderRadius: '4px', // Softer edges
         },
       },
     },
     MuiDrawer: {
       styleOverrides: {
-        paper: {
-          backgroundColor: '#1e1e1e', // Darker for dark mode drawer
-          color: '#ffffff',
-        },
+        paper: ({ theme }) => ({
+          backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
+          color: theme.palette.mode === 'dark' ? '#ffffff' : '#212121',
+          transition: 'width 0.3s ease', // Moved from globals.css
+        }),
       },
     },
   },
   shape: {
-    borderRadius: 8, // Consistent rounded corners
+    borderRadius: 8,
   },
   transitions: {
     duration: {
@@ -121,8 +102,5 @@ const baseTheme = {
   },
 };
 
-// Create the theme (light mode by default, dynamically adjusted in _app.js)
 const theme = createTheme(baseTheme);
-
-// Export for use in _app.js
 export default theme;

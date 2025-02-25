@@ -1,11 +1,14 @@
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from config.settings import settings
+from config.settings import load_settings  # Changed import
 from utils.logger import logger
 from typing import Dict, Any, Optional, Union
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from pydantic import BaseModel
+
+# Load settings once at module level
+settings = load_settings()
 
 # OAuth2 scheme for token retrieval
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")

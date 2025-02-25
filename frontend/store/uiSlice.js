@@ -17,10 +17,13 @@ const uiSlice = createSlice({
       state.themeMode = action.payload;
     },
     addNotification(state, action) {
+      if (state.notifications.length >= 5) {
+        state.notifications.shift(); // Cap at 5 notifications
+      }
       state.notifications.push({
         id: Date.now(),
-        message: action.payload.message,
-        severity: action.payload.severity || 'info', // 'success' | 'info' | 'warning' | 'error'
+         message: action.payload.message,
+         severity: action.payload.severity || 'info',
       });
     },
     removeNotification(state, action) {

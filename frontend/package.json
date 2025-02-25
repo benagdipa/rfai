@@ -7,19 +7,24 @@
     "start": "next start"
   },
   "dependencies": {
-    "@mui/material": "^5.10.0",
     "@emotion/react": "^11.10.0",
     "@emotion/styled": "^11.10.0",
     "@mui/icons-material": "^5.10.0",
-    "@reduxjs/toolkit": "^1.6.2",
+    "@mui/material": "^5.10.0",
+    "@reduxjs/toolkit": "^1.9.7",
     "axios": "^0.24.0",
     "chart.js": "^3.6.0",
+    "framer-motion": "^12.4.7",
+    "leaflet": "^1.7.1",
     "next": "^12.3.4",
     "react": "^18.2.0",
     "react-chartjs-2": "^4.0.0",
     "react-dom": "^18.2.0",
-    "react-redux": "^7.2.6",
     "react-leaflet": "^4.2.1",
-    "leaflet": "^1.7.1"
+    "react-redux": "^7.2.9",
+    "redux-persist": "^6.0.0"
+  },
+  "devDependencies": {
+    "redux-logger": "^3.0.6"
   }
 }

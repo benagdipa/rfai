@@ -1,9 +1,7 @@
 import os
 from dotenv import load_dotenv
-from typing import List, Optional, Dict, Any
+from typing import List, Any
 from pydantic import BaseModel, validator, Field
-from utils.logger import logger
-import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -103,50 +101,37 @@ class Settings(BaseModel):
     @validator("ENVIRONMENT")
     def validate_environment(cls, v: str) -> str:
         valid_environments = {"dev", "development", "prod", "production", "test"}
-        if v.lower() not in valid_environments:
-            logger.warning(f"Invalid ENVIRONMENT: {v}; defaulting to 'prod'")
-            return "prod"
-        return v.lower()
+        return v.lower() if v.lower() in valid_environments else "prod"
 
     # Validate LOG_LEVEL
     @validator("LOG_LEVEL")
     def validate_log_level(cls, v: str) -> str:
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
-        if v.upper() not in valid_levels:
-            logger.warning(f"Invalid LOG_LEVEL: {v}; defaulting to 'INFO'")
-            return "INFO"
-        return v.upper()
+        return v.upper() if v.upper() in valid_levels else "INFO"
 
-    # Validate file paths
+    # Validate file paths (no logger usage here)
     @validator("GOOGLE_SHEETS_CREDENTIALS")
     def validate_credentials_path(cls, v: str) -> str:
         if not os.path.isfile(v) and "GOOGLE_SHEETS_CREDENTIALS" not in os.environ:
-            logger.warning(f"Google Sheets credentials file not found at {v}")
+            print(f"Warning: Google Sheets credentials file not found at {v}", file=sys.stderr)
         return v
 
     class Config:
-        # Allow environment variable overrides with case sensitivity
         case_sensitive = True
         env_file = ".env"
         env_file_encoding = "utf-8"
 
-def load_settings() -> Settings:
-    """Load settings from environment variables with validation."""
-    try:
-        env_settings = {key: os.getenv(key) for key in Settings.__fields__.keys()}
-        settings_obj = Settings(**env_settings)
-        logger.info(f"Settings loaded: ENVIRONMENT={settings_obj.ENVIRONMENT}, LOG_LEVEL={settings_obj.LOG_LEVEL}")
-        return settings_obj
-    except ValueError as e:
-        logger.error(f"Settings validation failed: {e}")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error loading settings: {e}")
-        raise
+def load_settings() -> 'Settings':
+    """Load settings from environment variables with validation, respecting defaults."""
+    env_settings = {
+        key: value for key, value in (
+            (k, os.getenv(k)) for k in Settings.__fields__.keys()
+        ) if value is not None  # Only include non-None values
+    }
+    return Settings(**env_settings)
 
-# Initialize settings
+# Initialize the settings object here to make it available for import
 settings = load_settings()
 
 if __name__ == "__main__":
-    # Test the settings
     print("Settings:", settings.dict())

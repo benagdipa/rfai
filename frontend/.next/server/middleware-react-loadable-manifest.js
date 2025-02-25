@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST={"dashboard.js -> ../components/NetworkMap":{"id":"dashboard.js -> ../components/NetworkMap","files":["static/chunks/components_NetworkMap_js.js"]}}
+self.__REACT_LOADABLE_MANIFEST={"../lib/api.js -> ./auth":{"id":"../lib/api.js -> ./auth","files":["static/chunks/lib_auth_js.js"]}}

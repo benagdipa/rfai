@@ -36,7 +36,7 @@ class CsvConnector(DataConnector):
             raise
 
 # SQL Connector
-class SqlConnector(Data spełniaConnector):
+class SqlConnector(DataConnector):
     async def fetch_data(self, source_config: Dict[str, Any]) -> pd.DataFrame:
         """Fetch data from a SQL database."""
         connection_string = source_config.get("connection_string")

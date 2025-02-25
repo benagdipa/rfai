@@ -1,10 +1,12 @@
 import aiohttp
-from config.settings import settings
+from config.settings import load_settings  # Changed import
 from utils.logger import logger
 from utils.cache import cache_get, cache_set
 from typing import Dict, Any, Optional
 import backoff
 from aiohttp import ClientSession
+
+settings = load_settings()  # Load settings locally
 
 # Helper function to validate OpenAI response
 def _validate_response(response: Dict[str, Any]) -> Optional[str]:
@@ -22,7 +24,6 @@ def _validate_response(response: Dict[str, Any]) -> Optional[str]:
         logger.error(f"Failed to validate OpenAI response: {e}")
         return None
 
-# Retry decorator for transient failures
 @backoff.on_exception(
     backoff.expo,
     (aiohttp.ClientError, aiohttp.ServerTimeoutError),
@@ -35,31 +36,17 @@ async def get_ai_insights(
     config: Optional[Dict[str, Any]] = None,
     use_cache: bool = True
 ) -> str:
-    """
-    Fetch AI-generated insights from OpenAI API for the given data and prompt.
-
-    Args:
-        data (dict): Data to analyze (e.g., summary statistics).
-        prompt (str): Prompt describing the analysis task.
-        config (dict, optional): Configuration for AI request (e.g., model, max_tokens).
-        use_cache (bool): Whether to use caching for repeated requests.
-
-    Returns:
-        str: AI-generated insights or an error message.
-    """
     config = config or {
         "model": "gpt-3.5-turbo",
         "max_tokens": 200,
-        "temperature": 0.7,  # Controls creativity
-        "timeout": 30        # Seconds before timeout
+        "temperature": 0.7,
+        "timeout": 30
     }
 
-    # Validate OpenAI API key
     if not hasattr(settings, "OPENAI_API_KEY") or not settings.OPENAI_API_KEY:
         logger.error("OpenAI API key not configured in settings")
         return "AI insights unavailable: API key not configured"
 
-    # Generate cache key
     cache_key = f"ai_insights_{hash(frozenset(data.items()))}_{hash(prompt)}_{hash(frozenset(config.items()))}"
     if use_cache:
         cached_result = cache_get(cache_key)
@@ -67,7 +54,6 @@ async def get_ai_insights(
             logger.debug(f"Returning cached AI insights for key: {cache_key}")
             return cached_result
 
-    # Prepare request
     headers = {"Authorization": f"Bearer {settings.OPENAI_API_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": config["model"],
@@ -92,7 +78,7 @@ async def get_ai_insights(
                 if insights:
                     logger.info(f"Successfully retrieved AI insights for prompt: {prompt[:50]}...")
                     if use_cache:
-                        cache_set(cache_key, insights, ttl=3600)  # Cache for 1 hour
+                        cache_set(cache_key, insights, ttl=3600)
                     return insights
                 else:
                     logger.warning("No valid insights returned from OpenAI")
@@ -109,7 +95,6 @@ async def get_ai_insights(
             return f"Failed to retrieve AI insights: {str(e)}"
 
 if __name__ == "__main__":
-    # Test the function
     async def test_ai_insights():
         data = {"value": [1, 2, 3], "load": [10, 20, 30]}
         prompt = "Analyze this data for trends"

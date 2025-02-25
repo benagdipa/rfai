@@ -164,7 +164,7 @@ async def listen_for_ingestion_requests(agent_id: str):
         # Simulate an ingestion request (e.g., from FastAPI or message queue)
         request = {
             "identifier": "test_data",
-            "source_config": {"type": "csv", "config": {"data": [{"value": 10}, {"value": 20}]}}),
+            "source_config": {"type": "csv", "config": {"data": [{"value": 10}, {"value": 20}]}},
             "config": {"impute_method": "mean"}
         }
         db = MagicMock(spec=Session)  # Replace with actual DB session

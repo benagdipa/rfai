@@ -1,19 +1,25 @@
 import redis
 import json
-from config.settings import settings
+from config.settings import load_settings  # Changed import
 from utils.logger import logger
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Dict
 import backoff
 from redis.exceptions import ConnectionError, TimeoutError
 
-# Redis client with connection pooling
-redis_client = redis.Redis.from_url(
-    settings.REDIS_URL,
-    max_connections=20,         # Connection pool size
-    decode_responses=True,      # Return strings instead of bytes
-    socket_timeout=5,           # Timeout for socket operations
-    socket_connect_timeout=5    # Timeout for initial connection
-)
+redis_client = None
+
+def get_redis_client():
+    global redis_client
+    if redis_client is None:
+        settings = load_settings()  # Load settings lazily
+        redis_client = redis.Redis.from_url(
+            settings.REDIS_URL,
+            max_connections=20,
+            decode_responses=True,
+            socket_timeout=5,
+            socket_connect_timeout=5
+        )
+    return redis_client
 
 # Cache key prefix to avoid collisions
 CACHE_PREFIX = "multi_agent_cache:"
@@ -36,7 +42,6 @@ def _deserialize(data: str) -> Any:
         logger.error(f"Deserialization failed: {e}")
         return None
 
-# Retry decorator for Redis operations
 @backoff.on_exception(
     backoff.expo,
     (ConnectionError, TimeoutError),
@@ -44,17 +49,6 @@ def _deserialize(data: str) -> Any:
     on_backoff=lambda details: logger.debug(f"Retrying Redis operation: attempt {details['tries']}")
 )
 def cache_set(key: str, value: Any, ttl: int = 3600) -> bool:
-    """
-    Set a value in the Redis cache with an optional TTL.
-
-    Args:
-        key (str): Cache key.
-        value (Any): Value to cache (must be JSON-serializable).
-        ttl (int): Time-to-live in seconds (default: 3600).
-
-    Returns:
-        bool: True if successful, False otherwise.
-    """
     full_key = f"{CACHE_PREFIX}{key}"
     try:
         serialized_value = _serialize(value)
@@ -75,15 +69,6 @@ def cache_set(key: str, value: Any, ttl: int = 3600) -> bool:
     on_backoff=lambda details: logger.debug(f"Retrying Redis operation: attempt {details['tries']}")
 )
 def cache_get(key: str) -> Optional[Any]:
-    """
-    Retrieve a value from the Redis cache.
-
-    Args:
-        key (str): Cache key.
-
-    Returns:
-        Any: Cached value if found and deserializable, None otherwise.
-    """
     full_key = f"{CACHE_PREFIX}{key}"
     try:
         result = redis_client.get(full_key)
@@ -104,15 +89,6 @@ def cache_get(key: str) -> Optional[Any]:
         return None
 
 def cache_delete(key: str) -> bool:
-    """
-    Delete a key from the Redis cache.
-
-    Args:
-        key (str): Cache key.
-
-    Returns:
-        bool: True if deleted, False otherwise.
-    """
     full_key = f"{CACHE_PREFIX}{key}"
     try:
         deleted = redis_client.delete(full_key)
@@ -126,12 +102,7 @@ def cache_delete(key: str) -> bool:
         return False
 
 def cache_health_check() -> Dict[str, Any]:
-    """
-    Check the health of the Redis connection.
-
-    Returns:
-        dict: Health status and details.
-    """
+    """Check the health of the Redis connection."""
     try:
         redis_client.ping()
         info = redis_client.info("memory")
@@ -150,22 +121,13 @@ def cache_health_check() -> Dict[str, Any]:
         return {"status": "unhealthy", "details": str(e)}
 
 if __name__ == "__main__":
-    # Test the cache functions
     test_key = "test_key"
     test_value = {"data": [1, 2, 3], "status": "ok"}
-
-    # Set cache
     success = cache_set(test_key, test_value, ttl=10)
     print(f"Cache set: {success}")
-
-    # Get cache
     result = cache_get(test_key)
     print(f"Cache get: {result}")
-
-    # Delete cache
     deleted = cache_delete(test_key)
     print(f"Cache deleted: {deleted}")
-
-    # Health check
     health = cache_health_check()
     print(f"Cache health: {health}")

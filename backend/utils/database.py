@@ -1,34 +1,20 @@
 from sqlalchemy import create_engine, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
-from config.settings import settings
 from utils.logger import logger
 from contextlib import contextmanager
-from typing import Generator
+from typing import Generator, Dict, Any  # Added Dict to imports
 import sqlalchemy.exc as sqlexc
+from fastapi import HTTPException
 
-# Database engine with optimized connection pooling
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_size=20,              # Max number of connections in the pool
-    max_overflow=10,           # Allow up to 10 additional connections beyond pool_size
-    pool_timeout=30,           # Seconds to wait before giving up on getting a connection
-    pool_recycle=1800,         # Recycle connections every 30 minutes to prevent stale connections
-    pool_pre_ping=True         # Check connection health before use
-)
-
-# Session factory for creating database sessions
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-    expire_on_commit=False     # Prevent attribute expiration on commit for performance
-)
-
-# Declarative base for model definitions
+# Declarative base for model definitions (defined at module level, no settings needed yet)
 Base = declarative_base()
 
-# Define index for DynamicData table (assuming it’s used across agents)
+# Engine and session factory will be initialized later
+engine = None
+SessionLocal = None
+
+# Define index for DynamicData table (no settings dependency here)
 Index(
     'ix_dynamic_data_identifier_timestamp',
     "dynamic_data.identifier",
@@ -36,10 +22,37 @@ Index(
     postgresql_using="btree"  # Optimize for PostgreSQL; adjust for other DBs if needed
 )
 
+# Initialization function to set up the database with settings
+def init_db(database_url: str) -> None:
+    """Initialize the database engine and session factory with the provided URL."""
+    global engine, SessionLocal
+    try:
+        engine = create_engine(
+            database_url,
+            pool_size=20,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=1800,
+            pool_pre_ping=True,
+        )
+        SessionLocal = sessionmaker(
+            autocommit=False,
+            autoflush=False,
+            bind=engine,
+            expire_on_commit=False,
+        )
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database schema initialized successfully")
+    except sqlexc.SQLAlchemyError as e:
+        logger.error(f"Failed to initialize database schema: {str(e)}")
+        raise
+
 # Context manager for session handling with error logging
 @contextmanager
 def session_scope() -> Generator[Session, None, None]:
     """Provide a transactional scope around a series of operations."""
+    if SessionLocal is None:
+        raise RuntimeError("Database not initialized. Call init_db first.")
     session = SessionLocal()
     try:
         yield session
@@ -53,18 +66,11 @@ def session_scope() -> Generator[Session, None, None]:
 
 # Dependency for FastAPI to provide DB sessions
 def get_db() -> Generator[Session, None, None]:
-    """
-    Dependency to provide a database session for FastAPI endpoints.
-
-    Yields:
-        Session: A SQLAlchemy session.
-
-    Raises:
-        HTTPException: If database connection fails.
-    """
+    """Dependency to provide a database session for FastAPI endpoints."""
+    if SessionLocal is None:
+        raise RuntimeError("Database not initialized. Call init_db first.")
     db = SessionLocal()
     try:
-        # Test connection with a lightweight query
         db.execute("SELECT 1")
         yield db
     except sqlexc.OperationalError as e:
@@ -75,16 +81,6 @@ def get_db() -> Generator[Session, None, None]:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     finally:
         db.close()
-
-# Utility function to initialize database schema
-def init_db():
-    """Initialize the database schema by creating all tables."""
-    try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database schema initialized successfully")
-    except sqlexc.SQLAlchemyError as e:
-        logger.error(f"Failed to initialize database schema: {str(e)}")
-        raise
 
 # Utility function to check database health
 def check_db_health() -> Dict[str, Any]:
@@ -98,7 +94,8 @@ def check_db_health() -> Dict[str, Any]:
             return {"status": "unhealthy", "details": str(e)}
 
 if __name__ == "__main__":
-    # Test database setup when run directly
-    init_db()
+    from config.settings import load_settings
+    settings = load_settings()
+    init_db(settings.DATABASE_URL)
     health = check_db_health()
     print(health)

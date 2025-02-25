@@ -172,3 +172,7 @@
 2025-02-24 23:57:39.636 | INFO     | utils.websocket:connect:12 - WebSocket connected
 2025-02-25 00:14:16.715 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
 2025-02-25 00:14:16.717 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-25 15:10:49 | INFO | Logger configured: level=INFO, file=logs/app.log, JSON=False | logger.py:74
+2025-02-25 15:10:49 | INFO | Database schema initialized successfully | database.py:45
+2025-02-25 16:08:28 | INFO | Logger configured: level=INFO, file=logs/app.log, JSON=False | logger.py:74
+2025-02-25 16:08:28 | INFO | Database schema initialized successfully | database.py:45

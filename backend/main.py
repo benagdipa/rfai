@@ -1,17 +1,27 @@
 from fastapi import FastAPI, WebSocket, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from utils.database import get_db, Base, engine
 from utils.websocket import ws_manager
 from routers import auth, api
-from config.settings import settings
-from utils.logger import logger
+from config.settings import load_settings  # Import load_settings function
+from utils.logger import logger, configure_logger
+from utils.database import init_db, get_db, Base  # Adjusted imports
 from starlette.websockets import WebSocketDisconnect
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Dict, Any
 
-# Global state for agent coordination (optional)
+# Initialize settings and configure dependencies
+settings = load_settings()
+configure_logger(
+    log_level=settings.LOG_LEVEL,
+    log_file="logs/app.log",
+    use_json=settings.LOG_JSON,
+    environment=settings.ENVIRONMENT,
+)
+init_db(settings.DATABASE_URL)  # Initialize database with settings
+
+# Global state for agent coordination
 agent_status: Dict[str, str] = {
     "ingestion_agent_1": "idle",
     "eda_agent_1": "idle",
@@ -34,17 +44,12 @@ async def agent_heartbeat():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
-    # Startup tasks
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created or verified")
-    
-    # Start background tasks
+    logger.info("Starting application lifecycle")
     heartbeat_task = asyncio.create_task(agent_heartbeat())
     logger.info("Application started with agent heartbeat task")
 
-    yield  # Application runs here
+    yield
 
-    # Shutdown tasks
     heartbeat_task.cancel()
     try:
         await heartbeat_task
@@ -68,22 +73,15 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth")
 app.include_router(api.router)
 
-# WebSocket endpoint for real-time agent communication
+# WebSocket endpoint
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """
-    WebSocket endpoint for real-time communication with agents.
-
-    Args:
-        websocket (WebSocket): The WebSocket connection.
-    """
     await ws_manager.connect(websocket)
     client_id = id(websocket)
     logger.info(f"WebSocket client {client_id} connected")
     
     try:
         while True:
-            # Receive messages from clients (e.g., to trigger agent actions)
             message = await websocket.receive_text()
             data = {"message": message, "client_id": client_id}
             logger.debug(f"WebSocket received: {data}")
@@ -100,45 +98,20 @@ async def websocket_endpoint(websocket: WebSocket):
 # Health check endpoint
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
-    """
-    Check the health of the application and database connection.
-
-    Args:
-        db (Session): Database session.
-
-    Returns:
-        dict: Health status.
-    """
     try:
-        # Test database connection
         db.execute("SELECT 1")
         return {
             "status": "healthy",
             "database": "connected",
-            "agents": agent_status
+            "agents": agent_status,
         }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
 
-# Example endpoint to trigger agent actions via WebSocket
+# Trigger agent endpoint
 @app.post("/trigger-agent/{agent_id}")
-async def trigger_agent(
-    agent_id: str,
-    payload: Dict[str, Any],
-    db: Session = Depends(get_db)
-):
-    """
-    Trigger an agent action via WebSocket broadcast.
-
-    Args:
-        agent_id (str): Identifier of the target agent.
-        payload (dict): Data to send to the agent.
-        db (Session): Database session.
-
-    Returns:
-        dict: Confirmation of trigger broadcast.
-    """
+async def trigger_agent(agent_id: str, payload: Dict[str, Any], db: Session = Depends(get_db)):
     if agent_id not in agent_status:
         raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
     
@@ -147,7 +120,7 @@ async def trigger_agent(
         "event_type": f"{agent_id}_trigger",
         "data": payload,
         "timestamp": datetime.utcnow().isoformat(),
-        "target_agent": agent_id
+        "target_agent": agent_id,
     }
     await ws_manager.broadcast(event_data)
     logger.info(f"Triggered agent {agent_id} with payload: {payload}")

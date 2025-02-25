@@ -9,45 +9,64 @@ import {
   PURGE,
   REGISTER,
 } from 'redux-persist';
-import storage from 'redux-persist/lib/storage'; // LocalStorage for persistence
+import { createLogger } from 'redux-logger';
 import kpiReducer from './kpiSlice';
-import authReducer from './authSlice'; // New reducer for auth state
-import uiReducer from './uiSlice'; // New reducer for UI state
-import logger from 'redux-logger'; // Middleware for action logging
+import authReducer from './authSlice';
+import uiReducer from './uiSlice';
 
-// Persist configuration
-const persistConfig = {
-  key: 'root',
-  storage,
-  whitelist: ['auth'], // Persist only auth state
+// Conditional storage import for client-side only
+const isClient = typeof window !== 'undefined';
+const storage = isClient ? require('redux-persist/lib/storage').default : null;
+
+// No-op storage for server-side
+const noopStorage = {
+  getItem: () => Promise.resolve(null),
+  setItem: () => Promise.resolve(),
+  removeItem: () => Promise.resolve(),
 };
 
-// Root reducer combining all slices
+// Persistence configuration
+const persistConfig = {
+  key: 'root',
+  storage: isClient ? storage : noopStorage,
+  whitelist: ['auth'], // Persist only auth slice
+};
+
+// Debug logging for storage choice
+console.log('Using storage:', isClient ? 'localStorage' : 'noopStorage');
+
+// Combine reducers
 const rootReducer = combineReducers({
   kpi: kpiReducer,
   auth: authReducer,
   ui: uiReducer,
 });
 
-// Persisted reducer
+// Apply persistence to root reducer
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
-// Configure the store
+// Create custom logger middleware
+const loggerMiddleware = createLogger({
+  collapsed: true, // Collapse logs by default
+  diff: true, // Show state diffs for easier debugging
+});
+
+// Configure the Redux store
 export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        // Ignore redux-persist actions for serialization checks
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER], // Ignore persistence actions
       },
-    }).concat(process.env.NODE_ENV === 'development' ? logger : []), // Add logger in dev mode
-  devTools: process.env.NODE_ENV !== 'production', // Enable Redux DevTools in dev mode
+    }).concat(process.env.NODE_ENV === 'development' ? loggerMiddleware : []),
+  devTools: process.env.NODE_ENV !== 'production', // Enable Redux DevTools in dev
 });
 
-// Persistor for persisting state
+// Create persistor for redux-persist
 export const persistor = persistStore(store);
 
-// Types for TypeScript (optional)
-// export type RootState = ReturnType<typeof store.getState>;
-// export type AppDispatch = typeof store.dispatch;
+// Log persistor state for debugging
+persistor.subscribe(() => {
+  console.log('Persistor state:', persistor.getState());
+});

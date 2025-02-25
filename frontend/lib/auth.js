@@ -1,5 +1,5 @@
 import api from './api';
-import { useNavigate } from 'react-router-dom'; // For hook-based navigation
+import { useRouter } from 'next/router';
 import { useState, useCallback, useEffect } from 'react';
 
 // Core authentication functions
@@ -18,7 +18,7 @@ export async function login(username, password) {
     localStorage.setItem('token', access_token);
     if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
     console.log('Login successful:', { username });
-    return response.data; // Return tokens for further handling
+    return response.data;
   } catch (error) {
     const errorDetails = {
       status: error.response?.status,
@@ -55,9 +55,9 @@ export async function logout(navigate = null) {
     localStorage.removeItem('refresh_token');
     console.log('Logout successful');
     if (navigate) {
-      navigate('/login'); // Use provided navigate function if available
+      navigate('/login');
     } else {
-      window.location.href = '/login'; // Fallback for non-hook contexts
+      window.location.href = '/login';
     }
   } catch (error) {
     console.error('Logout failed:', error);
@@ -68,7 +68,7 @@ export async function getCurrentUser() {
   try {
     const response = await api.get('/auth/me');
     console.log('Fetched current user:', response.data);
-    return response.data; // { username, email, etc. }
+    return response.data;
   } catch (error) {
     console.error('Failed to fetch current user:', error);
     throw new Error('Unable to fetch user information');
@@ -97,7 +97,7 @@ export async function refreshToken() {
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const fetchUser = useCallback(async () => {
     try {
@@ -108,11 +108,11 @@ export function useAuth() {
       setUser(null);
       localStorage.removeItem('token');
       localStorage.removeItem('refresh_token');
-      navigate('/login');
+      router.push('/login');
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [router]);
 
   useEffect(() => {
     fetchUser();
@@ -123,9 +123,9 @@ export function useAuth() {
       setLoading(true);
       await login(username, password);
       await fetchUser();
-      navigate('/'); // Redirect to home after login
+      router.push('/');
     } catch (error) {
-      throw error; // Let caller handle the error
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export function useAuth() {
       setLoading(true);
       await signup(username, password);
       await fetchUser();
-      navigate('/'); // Redirect to home after signup
+      router.push('/');
     } catch (error) {
       throw error;
     } finally {
@@ -147,12 +147,12 @@ export function useAuth() {
   const handleLogout = useCallback(async () => {
     try {
       setLoading(true);
-      await logout(navigate);
+      await logout(() => router.push('/login'));
       setUser(null);
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [router]);
 
   return {
     user,
@@ -164,20 +164,4 @@ export function useAuth() {
   };
 }
 
-// Example usage in a component
-if (require.main === module) {
-  // This block is for testing purposes only
-  const testAuth = async () => {
-    try {
-      await login('testuser', 'Test1234');
-      const user = await getCurrentUser();
-      console.log('Current user:', user);
-      await logout();
-    } catch (error) {
-      console.error('Auth test failed:', error);
-    }
-  };
-  testAuth();
-}
-
-export default api; // Export api for consistency, though not directly related to auth
+export default api; // Export api for consistency

@@ -21,22 +21,16 @@ const nextConfig = {
       };
     }
 
-    // Optimize CSS handling (optional if using a CSS minifier)
-    if (isServer) {
-      const TerserPlugin = require('terser-webpack-plugin');
-      config.optimization.minimizer.push(new TerserPlugin());
-    }
-
     return config;
   },
 
   // Image optimization configuration
   images: {
-    domains: ['localhost', 'example.com'], // Add domains for external images if needed
-    formats: ['image/avif', 'image/webp'], // Modern image formats for optimization
+    domains: ['localhost', 'example.com'],
+    formats: ['image/avif', 'image/webp'],
   },
 
-  // Custom headers for security and CORS (optional)
+  // Custom headers for security
   async headers() {
     return [
       {
@@ -50,30 +44,9 @@ const nextConfig = {
     ];
   },
 
-  // Custom rewrites for WebSocket proxying (if needed)
-  async rewrites() {
-    return [
-      {
-        source: '/ws',
-        destination: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws',
-      },
-    ];
-  },
-
   // Performance optimizations
-  swcMinify: true, // Enable SWC minifier for faster builds (Next.js 12+)
-  productionBrowserSourceMaps: false, // Disable source maps in production for smaller bundles
-
-  // TypeScript support (optional, uncomment if using TypeScript)
-  // typescript: {
-  //   ignoreBuildErrors: false, // Enforce type checking in production builds
-  // },
-
-  // ESLint configuration (optional, uncomment to enable)
-  // eslint: {
-  //   dirs: ['pages', 'components', 'lib', 'store'], // Folders to lint
-  //   ignoreDuringBuilds: false, // Run ESLint during builds
-  // },
+  swcMinify: true, // Use SWC minifier (built-in, no extra dependency needed)
+  productionBrowserSourceMaps: false, // Disable source maps in production
 };
 
 module.exports = nextConfig;
