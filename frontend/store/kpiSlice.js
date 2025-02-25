@@ -6,10 +6,10 @@ export const fetchKpiData = createAsyncThunk(
   async (identifier, { rejectWithValue }) => {
     try {
       const [monitorResponse, predictResponse, issuesResponse, optimizationResponse] = await Promise.all([
-        api.get(`/monitor/${identifier}`),
-        api.get(`/predict/${identifier}`),
-        api.get(`/issues/${identifier}`),
-        api.get(`/optimize/${identifier}`),
+        api.get(`/api/monitor/${identifier}`),
+        api.get(`/api/predict/${identifier}`),
+        api.get(`/api/issues/${identifier}`),
+        api.get(`/api/optimize/${identifier}`),
       ]);
 
       return {

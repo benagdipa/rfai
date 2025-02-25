@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchKpiData, updateEda, updateDataSection, selectKpiData, selectKpiStatus, selectKpiError } from '../store/kpiSlice';
 import KpiChart from '../components/KpiChart';
 import PredictionChart from '../components/PredictionChart';
-import NetworkMap from '../components/NetworkMap';
+// import NetworkMap from '../components/NetworkMap';
 import DataSourceConfig from '../components/DataSourceConfig';
 import { useWebSocket } from '../lib/websocket';
 import {

@@ -70,7 +70,9 @@ api.interceptors.response.use(
             refreshSubscribers = [];
             console.error('Token refresh failed:', refreshError);
             await import('./auth').then(({ logout }) => logout()); // Dynamic import
+            if (typeof window !== 'undefined') { 
             window.location.href = '/login'; // Redirect to login
+            }
             return Promise.reject(refreshError);
           }
         }
