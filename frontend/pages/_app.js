@@ -38,12 +38,14 @@ function ErrorBoundary({ children }) {
       console.error('ErrorBoundary caught:', event.error || event.reason);
       setError(event.error || new Error('Unknown error occurred'));
     };
+    if (typeof window !== 'undefined') { 
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleError);
     return () => {
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleError);
     };
+  }
   }, []);
 
   if (error) {
@@ -55,7 +57,11 @@ function ErrorBoundary({ children }) {
         <Typography variant="body1" sx={{ mt: 1 }}>
           {error.message}
         </Typography>
-        <Button variant="contained" onClick={() => window.location.reload()} sx={{ mt: 2 }}>
+        <Button variant="contained" onClick={() => {
+          if(typeof window!=='undefined'){
+            return window.location.reload()
+          }
+        }} sx={{ mt: 2 }}>
           Reload
         </Button>
       </Box>

@@ -74,7 +74,7 @@ export default function DataSourceConfig({ onSubmit, initialConfig = {} }) {
       if (sourceType === 'csv') {
         const formData = new FormData();
         formData.append('file', file);
-        const response = await api.post('/upload-csv/CELL001', formData, {
+        const response = await api.post('api/upload-csv/CELL001', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         onSubmit({ type: sourceType, config: { ...config, file: file.name }, result: response.data });

@@ -76,7 +76,7 @@ const PredictionChart = ({
       const fetchPredictions = async () => {
         setLoading(true);
         try {
-          const response = await fetch(`/api/predict/${identifier}`, {
+          const response = await fetch(`/predict/${identifier}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           });
           if (!response.ok) throw new Error('Failed to fetch predictions');

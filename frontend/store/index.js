@@ -16,6 +16,7 @@ import uiReducer from './uiSlice';
 
 // Conditional storage import for client-side only
 const isClient = typeof window !== 'undefined';
+
 const storage = isClient ? require('redux-persist/lib/storage').default : null;
 
 // No-op storage for server-side

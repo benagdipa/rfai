@@ -49,7 +49,8 @@ class ErrorBoundary extends React.Component {
           stack: error.stack,
           componentStack: errorInfo.componentStack,
           timestamp: new Date().toISOString(),
-          location: window.location.href,
+          location: typeof window!=='undefined' ?window.location.href:'',
+      
         },
       });
     } catch (err) {

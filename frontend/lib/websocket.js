@@ -1,3 +1,4 @@
+import { useState,useEffect } from 'react';
 import { logout } from './auth'; // For handling auth-related disconnects
 
 export class WebSocketClient {
@@ -72,7 +73,9 @@ export class WebSocketClient {
       this.onError(new Error('Max reconnect attempts reached or connection intentionally closed'));
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
         logout(); // Logout if persistent failure (e.g., token expired)
-        window.location.href = '/login';
+        if (typeof window !== "undefined") {
+          window.location.href = '/login';
+        }
       }
       return;
     }
