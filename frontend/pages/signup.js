@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../lib/auth'; // Enhanced auth hook
+import { useAuth } from '../lib/auth';
 import {
   TextField,
   Button,
@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import Link from 'next/link';
 import { styled } from '@mui/material/styles';
-import { motion } from 'framer-motion'; // For animations
+import { motion } from 'framer-motion';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
@@ -36,17 +36,19 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
-  const { signup, loading } = useAuth(); // Use enhanced auth hook
+  const { signup, loading } = useAuth();
 
-  // Handle form submission
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
       setError('');
 
-      // Client-side validation
       if (!username || !password || !confirmPassword) {
         setError('Please fill in all fields');
+        return;
+      }
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+        setError('Username must be 3-20 alphanumeric characters or underscores');
         return;
       }
       if (password !== confirmPassword) {
@@ -62,23 +64,21 @@ const Signup = () => {
         await signup(username, password);
         router.push('/dashboard');
       } catch (err) {
-        const errorMessage = err.message || 'Signup failed';
+        const errorMessage = err.response?.data?.detail || err.message || 'Signup failed';
         setError(errorMessage);
-        console.error('Signup error:', {
+        console.error('Signup error:', JSON.stringify({
           message: err.message,
           status: err.response?.status,
           data: err.response?.data,
-        });
+        }, null, 2));
       }
     },
     [username, password, confirmPassword, signup, router]
   );
 
-  // Toggle password visibility
   const handleTogglePassword = () => setShowPassword((prev) => !prev);
   const handleToggleConfirmPassword = () => setShowConfirmPassword((prev) => !prev);
 
-  // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
@@ -115,7 +115,7 @@ const Signup = () => {
             autoFocus
             disabled={loading}
             aria-label="Username input"
-            inputProps={{ maxLength: 20 }} // Align with backend validation
+            inputProps={{ maxLength: 20 }}
             error={!username && error.includes('fields')}
             helperText={!username && error.includes('fields') ? 'Username is required' : ''}
           />
