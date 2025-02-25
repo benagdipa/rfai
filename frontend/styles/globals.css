@@ -1,6 +1,100 @@
-body {
+/* CSS Reset for consistency across browsers */
+* {
   margin: 0;
   padding: 0;
-  font-family: 'Roboto', sans-serif;
-  background-color: #f0f2f5;
+  box-sizing: border-box;
+}
+
+/* Root variables for theme consistency (synced with MUI theme) */
+:root {
+  --primary-main: #1976d2; /* Matches MUI primary.main */
+  --secondary-main: #9c27b0; /* Matches MUI secondary.main */
+  --background-default: #f0f2f5; /* Light mode default */
+  --background-paper: #ffffff; /* Light mode paper */
+  --text-primary: #212121; /* Dark text */
+  --text-secondary: #757575; /* Lighter text */
+  --error-main: #d32f2f; /* Matches MUI error.main */
+  --success-main: #2e7d32; /* Matches MUI success.main */
+}
+
+/* Dark mode variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-default: #303030; /* Dark mode default */
+    --background-paper: #424242; /* Dark mode paper */
+    --text-primary: #ffffff; /* Light text */
+    --text-secondary: #b0bec5; /* Lighter text */
+  }
+}
+
+/* Apply theme variables to body */
+body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background-color: var(--background-default);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure HTML and body take full height */
+html, body {
+  height: 100%;
+}
+
+/* Next.js container */
+#__next {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Links */
+a {
+  color: var(--primary-main);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Buttons */
+button {
+  font-family: inherit;
+}
+
+/* Accessibility: Focus styles */
+:focus {
+  outline: 2px solid var(--primary-main);
+  outline-offset: 2px;
+}
+
+/* Custom styles for MUI components */
+.MuiDrawer-paper {
+  transition: width 0.3s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  body {
+    font-size: 14px; /* Slightly smaller text on mobile */
+  }
+  .MuiTypography-h6 {
+    font-size: 1.1rem; /* Adjust heading size */
+  }
+}
+
+/* Custom component styles */
+.custom-marker {
+  cursor: pointer;
+}
+
+/* WebSocket status indicators */
+.ws-connected {
+  color: var(--success-main);
+}
+
+.ws-disconnected {
+  color: var(--error-main);
 }

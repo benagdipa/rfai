@@ -1,24 +1,183 @@
 import api from './api';
+import { useNavigate } from 'react-router-dom'; // For hook-based navigation
+import { useState, useCallback, useEffect } from 'react';
 
+// Core authentication functions
 export async function login(username, password) {
   const formData = new URLSearchParams();
   formData.append('username', username);
   formData.append('password', password);
 
-  const response = await api.post('/auth/token', formData, {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  });
-  localStorage.setItem('token', response.data.access_token);
+  try {
+    const response = await api.post('/auth/token', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+    const { access_token, refresh_token } = response.data;
+    localStorage.setItem('token', access_token);
+    if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
+    console.log('Login successful:', { username });
+    return response.data; // Return tokens for further handling
+  } catch (error) {
+    const errorDetails = {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    };
+    console.error('Login failed:', errorDetails);
+    throw new Error(errorDetails.data?.detail || 'Login failed');
+  }
 }
 
 export async function signup(username, password) {
-  const response = await api.post('/auth/signup', { username, password });
-  localStorage.setItem('token', response.data.access_token);
+  try {
+    const response = await api.post('/auth/signup', { username, password });
+    const { access_token, refresh_token } = response.data;
+    localStorage.setItem('token', access_token);
+    if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
+    console.log('Signup successful:', { username });
+    return response.data;
+  } catch (error) {
+    const errorDetails = {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    };
+    console.error('Signup failed:', errorDetails);
+    throw new Error(errorDetails.data?.detail || 'Signup failed');
+  }
 }
 
-export function logout() {
-  localStorage.removeItem('token');
-  window.location.href = '/login';
+export async function logout(navigate = null) {
+  try {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
+    console.log('Logout successful');
+    if (navigate) {
+      navigate('/login'); // Use provided navigate function if available
+    } else {
+      window.location.href = '/login'; // Fallback for non-hook contexts
+    }
+  } catch (error) {
+    console.error('Logout failed:', error);
+  }
 }
+
+export async function getCurrentUser() {
+  try {
+    const response = await api.get('/auth/me');
+    console.log('Fetched current user:', response.data);
+    return response.data; // { username, email, etc. }
+  } catch (error) {
+    console.error('Failed to fetch current user:', error);
+    throw new Error('Unable to fetch user information');
+  }
+}
+
+export async function refreshToken() {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  try {
+    const response = await api.post('/auth/refresh', { refresh_token: refreshToken });
+    const { access_token } = response.data;
+    localStorage.setItem('token', access_token);
+    console.log('Token refreshed successfully');
+    return access_token;
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+    throw new Error('Failed to refresh token');
+  }
+}
+
+// React Hook for authentication state management
+export function useAuth() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const fetchUser = useCallback(async () => {
+    try {
+      setLoading(true);
+      const userData = await getCurrentUser();
+      setUser(userData);
+    } catch (error) {
+      setUser(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+      navigate('/login');
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  const handleLogin = async (username, password) => {
+    try {
+      setLoading(true);
+      await login(username, password);
+      await fetchUser();
+      navigate('/'); // Redirect to home after login
+    } catch (error) {
+      throw error; // Let caller handle the error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (username, password) => {
+    try {
+      setLoading(true);
+      await signup(username, password);
+      await fetchUser();
+      navigate('/'); // Redirect to home after signup
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = useCallback(async () => {
+    try {
+      setLoading(true);
+      await logout(navigate);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  return {
+    user,
+    loading,
+    login: handleLogin,
+    signup: handleSignup,
+    logout: handleLogout,
+    refreshToken,
+  };
+}
+
+// Example usage in a component
+if (require.main === module) {
+  // This block is for testing purposes only
+  const testAuth = async () => {
+    try {
+      await login('testuser', 'Test1234');
+      const user = await getCurrentUser();
+      console.log('Current user:', user);
+      await logout();
+    } catch (error) {
+      console.error('Auth test failed:', error);
+    }
+  };
+  testAuth();
+}
+
+export default api; // Export api for consistency, though not directly related to auth

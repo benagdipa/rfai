@@ -110,3 +110,65 @@
 2025-02-24 16:50:28.728 | WARNING  | agents.prediction:predict_kpis:15 - No numeric data found for prediction in CELL001. Ensure your data source contains numeric columns.
 2025-02-24 16:50:29.004 | INFO     | utils.websocket:connect:12 - WebSocket connected
 2025-02-24 16:50:30.007 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 17:35:08.335 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-24 17:35:08.349 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-24 17:35:12.551 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 17:35:12.575 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 19:19:37.081 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-24 19:19:37.084 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-24 23:02:14.201 | INFO     | main:startup:27 - Application started
+2025-02-24 23:02:57.631 | INFO     | agents.kpi_monitoring:monitor_kpis:7 - Monitoring KPIs for CELL001
+2025-02-24 23:02:57.646 | WARNING  | agents.kpi_monitoring:monitor_kpis:13 - No numeric data found for CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:02:57.652 | INFO     | agents.kpi_monitoring:monitor_kpis:7 - Monitoring KPIs for CELL001
+2025-02-24 23:02:57.657 | WARNING  | agents.kpi_monitoring:monitor_kpis:13 - No numeric data found for CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:02:57.699 | INFO     | agents.prediction:predict_kpis:9 - Generating predictions for CELL001
+2025-02-24 23:02:57.702 | WARNING  | agents.prediction:predict_kpis:15 - No numeric data found for prediction in CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:02:57.705 | INFO     | agents.prediction:predict_kpis:9 - Generating predictions for CELL001
+2025-02-24 23:02:57.708 | WARNING  | agents.prediction:predict_kpis:15 - No numeric data found for prediction in CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:02:57.910 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 23:02:58.942 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 23:03:44.107 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-24 23:03:45.446 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 23:06:42.759 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-24 23:06:42.762 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-24 23:06:56.052 | INFO     | agents.kpi_monitoring:monitor_kpis:7 - Monitoring KPIs for CELL001
+2025-02-24 23:06:56.058 | WARNING  | agents.kpi_monitoring:monitor_kpis:13 - No numeric data found for CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:06:56.063 | INFO     | agents.kpi_monitoring:monitor_kpis:7 - Monitoring KPIs for CELL001
+2025-02-24 23:06:56.066 | WARNING  | agents.kpi_monitoring:monitor_kpis:13 - No numeric data found for CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:06:56.103 | INFO     | agents.prediction:predict_kpis:9 - Generating predictions for CELL001
+2025-02-24 23:06:56.106 | WARNING  | agents.prediction:predict_kpis:15 - No numeric data found for prediction in CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:06:56.111 | INFO     | agents.prediction:predict_kpis:9 - Generating predictions for CELL001
+2025-02-24 23:06:56.116 | WARNING  | agents.prediction:predict_kpis:15 - No numeric data found for prediction in CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:06:56.344 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 23:06:57.363 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 23:07:22.721 | INFO     | agents.data_ingestion:ingest_data:8 - Starting data ingestion for CELL001
+2025-02-24 23:11:13.631 | INFO     | main:startup:27 - Application started
+2025-02-24 23:18:56.810 | INFO     | main:startup:27 - Application started
+2025-02-24 23:21:12.173 | INFO     | main:startup:27 - Application started
+2025-02-24 23:33:00.896 | INFO     | main:startup:27 - Application started
+2025-02-24 23:42:51.168 | INFO     | main:startup:27 - Application started
+2025-02-24 23:43:42.244 | INFO     | agents.kpi_monitoring:monitor_kpis:7 - Monitoring KPIs for CELL001
+2025-02-24 23:43:42.256 | WARNING  | agents.kpi_monitoring:monitor_kpis:13 - No numeric data found for CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:43:42.261 | INFO     | agents.kpi_monitoring:monitor_kpis:7 - Monitoring KPIs for CELL001
+2025-02-24 23:43:42.263 | WARNING  | agents.kpi_monitoring:monitor_kpis:13 - No numeric data found for CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:43:42.316 | INFO     | agents.prediction:predict_kpis:9 - Generating predictions for CELL001
+2025-02-24 23:43:42.319 | WARNING  | agents.prediction:predict_kpis:15 - No numeric data found for prediction in CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:43:42.323 | INFO     | agents.prediction:predict_kpis:9 - Generating predictions for CELL001
+2025-02-24 23:43:42.326 | WARNING  | agents.prediction:predict_kpis:15 - No numeric data found for prediction in CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:43:42.527 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 23:43:43.567 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 23:57:22.983 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-24 23:57:22.985 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-24 23:57:34.239 | INFO     | main:startup:27 - Application started
+2025-02-24 23:57:38.605 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-24 23:57:38.642 | INFO     | agents.kpi_monitoring:monitor_kpis:7 - Monitoring KPIs for CELL001
+2025-02-24 23:57:38.654 | WARNING  | agents.kpi_monitoring:monitor_kpis:13 - No numeric data found for CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:57:38.660 | INFO     | agents.kpi_monitoring:monitor_kpis:7 - Monitoring KPIs for CELL001
+2025-02-24 23:57:38.665 | WARNING  | agents.kpi_monitoring:monitor_kpis:13 - No numeric data found for CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:57:38.671 | INFO     | agents.prediction:predict_kpis:9 - Generating predictions for CELL001
+2025-02-24 23:57:38.676 | WARNING  | agents.prediction:predict_kpis:15 - No numeric data found for prediction in CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:57:38.682 | INFO     | agents.prediction:predict_kpis:9 - Generating predictions for CELL001
+2025-02-24 23:57:38.686 | WARNING  | agents.prediction:predict_kpis:15 - No numeric data found for prediction in CELL001. Ensure your data source contains numeric columns.
+2025-02-24 23:57:39.636 | INFO     | utils.websocket:connect:12 - WebSocket connected
+2025-02-25 00:14:16.715 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected
+2025-02-25 00:14:16.717 | INFO     | utils.websocket:disconnect:17 - WebSocket disconnected

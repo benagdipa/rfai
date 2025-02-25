@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchKpiData, updateEda } from '../store/kpiSlice';
+import { fetchKpiData, updateEda, updateDataSection, selectKpiData, selectKpiStatus, selectKpiError } from '../store/kpiSlice';
 import KpiChart from '../components/KpiChart';
-import NetworkMap from '../components/NetworkMap';
 import PredictionChart from '../components/PredictionChart';
+import NetworkMap from '../components/NetworkMap';
 import DataSourceConfig from '../components/DataSourceConfig';
-import api from '../lib/api';
-import { WebSocketClient } from '../lib/websocket';
+import { useWebSocket } from '../lib/websocket';
 import {
   CssBaseline,
   AppBar,
@@ -29,11 +28,17 @@ import {
   AccordionSummary,
   AccordionDetails,
   Tooltip,
+  Alert,
+  Badge,
 } from '@mui/material';
 import { styled } from '@mui/system';
 import MenuIcon from '@mui/icons-material/Menu';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoIcon from '@mui/icons-material/Info';
+import dynamic from 'next/dynamic';
+
+// Dynamically import NetworkMap to disable SSR
+const NetworkMapDynamic = dynamic(() => import('../components/NetworkMap'), { ssr: false });
 
 const drawerWidth = 240;
 
@@ -42,34 +47,63 @@ const ContentBox = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
   borderRadius: theme.spacing(1),
   boxShadow: theme.shadows[3],
+  minHeight: '300px',
 }));
 
-export default function Dashboard() {
+const Dashboard = () => {
   const dispatch = useDispatch();
   const { data, eda, status, error } = useSelector((state) => state.kpi);
-  const [wsClient, setWsClient] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [wsError, setWsError] = useState('');
   const identifier = 'CELL001';
 
-  // Fetch initial data and set up WebSocket connection
+  // WebSocket setup using enhanced hook
+  const { status: wsStatus, error: wsErrorMsg } = useWebSocket({
+    url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws',
+    onMessage: (message) => {
+      if (message.data.identifier === identifier) {
+        switch (message.event_type) {
+          case 'eda_complete':
+            dispatch(updateEda(message.data));
+            break;
+          case 'kpis_monitored':
+            dispatch(updateDataSection({ section: 'monitor', data: message.data }));
+            break;
+          case 'predictions_generated':
+            dispatch(updateDataSection({ section: 'predict', data: message.data }));
+            break;
+          case 'issues_detected':
+            dispatch(updateDataSection({ section: 'issues', data: message.data }));
+            break;
+          case 'optimization_proposed':
+            dispatch(updateDataSection({ section: 'optimization', data: message.data }));
+            break;
+          default:
+            console.log('Unhandled WebSocket event:', message.event_type);
+        }
+      }
+    },
+    onError: (err) => setWsError(err.message),
+  });
+
+  // Fetch initial KPI data
   useEffect(() => {
     dispatch(fetchKpiData(identifier));
-    const client = new WebSocketClient(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws', (message) => {
-      dispatch(updateEda(message));
-    });
-    setWsClient(client);
-    return () => client.close();
-  }, [dispatch]);
+  }, [dispatch, identifier]);
 
   // Handle data source submission
-  const handleDataSourceSubmit = async (sourceConfig) => {
+  const handleDataSourceSubmit = useCallback(async (sourceConfig) => {
     try {
       await api.post(`/ingest/${identifier}`, sourceConfig);
+      console.log('Data source submitted:', sourceConfig);
+      // Optionally refetch data after ingestion
+      dispatch(fetchKpiData(identifier));
     } catch (err) {
-      console.error('Ingestion failed:', err);
+      console.error('Ingestion failed:', err.message);
+      setWsError(err.message);
     }
-  };
+  }, [identifier, dispatch]);
 
   // Handle tab changes
   const handleTabChange = (event, newValue) => {
@@ -101,16 +135,16 @@ export default function Dashboard() {
     {
       label: 'Issues & RCA',
       content: renderIssuesRca,
-      tooltip: 'Coming soon: Issue detection and root cause analysis.',
+      tooltip: 'Issue detection and root cause analysis.',
     },
     {
       label: 'Optimization',
       content: renderOptimization,
-      tooltip: 'Coming soon: AI-driven optimization suggestions.',
+      tooltip: 'AI-driven optimization suggestions.',
     },
   ];
 
-  // Drawer content for navigation
+  // Drawer content for navigation with badge for issues
   const drawerContent = (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', p: 1 }}>
@@ -124,14 +158,18 @@ export default function Dashboard() {
             key={index}
             onClick={() => {
               setTabValue(index);
-              setDrawerOpen(false); // Close temporary drawer on selection
+              setDrawerOpen(false);
             }}
             sx={{
               bgcolor: tabValue === index ? 'grey.800' : 'transparent',
               '&:hover': { bgcolor: 'grey.700' },
             }}
+            aria-label={section.label}
           >
             <ListItemText primary={section.label} />
+            {section.label === 'Issues & RCA' && data?.issues?.issues?.length > 0 && (
+              <Badge badgeContent={data.issues.issues.length} color="error" sx={{ ml: 1 }} />
+            )}
           </ListItem>
         ))}
       </List>
@@ -145,25 +183,25 @@ export default function Dashboard() {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">Exploratory Data Analysis</Typography>
           <Tooltip title={agentSections[0].tooltip}>
-            <IconButton size="small" sx={{ ml: 1 }}>
+            <IconButton size="small" sx={{ ml: 1 }} aria-label="EDA info">
               <InfoIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
         {status === 'loading' && <CircularProgress />}
-        {error && <Typography color="error">{error}</Typography>}
+        {error && <Alert severity="error">{error}</Alert>}
         {eda ? (
           <>
             <Typography variant="body2" color="textSecondary">
               Identifier: {eda.identifier}
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              Clusters: {eda.clusters}
+              Clusters: {eda.clusters || 'N/A'}
             </Typography>
             <Typography variant="body2" sx={{ mt: 1 }}>
-              AI Insights: {eda.ai_insights}
+              AI Insights: {eda.ai_insights || 'No insights available'}
             </Typography>
-            <KpiChart data={eda} />
+            <KpiChart data={eda} identifier={identifier} />
           </>
         ) : (
           <Typography>No EDA data available</Typography>
@@ -178,7 +216,7 @@ export default function Dashboard() {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">Network Monitoring</Typography>
           <Tooltip title={agentSections[1].tooltip}>
-            <IconButton size="small" sx={{ ml: 1 }}>
+            <IconButton size="small" sx={{ ml: 1 }} aria-label="Network info">
               <InfoIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -190,7 +228,7 @@ export default function Dashboard() {
               color={data.monitor.anomalies_detected ? 'error' : 'success'}
               sx={{ mb: 2 }}
             />
-            <NetworkMap cells={[data.monitor]} />
+            <NetworkMapDynamic cells={[data.monitor]} identifier={identifier} />
           </>
         ) : (
           <Typography>No network data available</Typography>
@@ -205,13 +243,13 @@ export default function Dashboard() {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">Predictive Analytics</Typography>
           <Tooltip title={agentSections[2].tooltip}>
-            <IconButton size="small" sx={{ ml: 1 }}>
+            <IconButton size="small" sx={{ ml: 1 }} aria-label="Predictions info">
               <InfoIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
         {data?.predict ? (
-          <PredictionChart predictions={data.predict.predictions} />
+          <PredictionChart predictions={data.predict.predictions} identifier={identifier} />
         ) : (
           <Typography>No predictions available</Typography>
         )}
@@ -225,14 +263,40 @@ export default function Dashboard() {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">Issues & Root Cause Analysis</Typography>
           <Tooltip title={agentSections[3].tooltip}>
-            <IconButton size="small" sx={{ ml: 1 }}>
+            <IconButton size="small" sx={{ ml: 1 }} aria-label="Issues info">
               <InfoIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
-        <Typography variant="body2" color="textSecondary">
-          Coming soon: Detailed issue detection and root cause analysis.
-        </Typography>
+        {data?.issues?.issues ? (
+          <>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Detected Issues: {data.issues.issues.length}
+            </Typography>
+            {data.issues.issues.map((issue, index) => (
+              <Accordion key={index}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="subtitle2">{issue.description}</Typography>
+                  <Chip
+                    label={issue.severity}
+                    color={issue.severity === 'critical' ? 'error' : 'warning'}
+                    size="small"
+                    sx={{ ml: 1 }}
+                  />
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    Status: {issue.status} <br />
+                    Detected At: {new Date(issue.detected_at).toLocaleString()} <br />
+                    {issue.resolved_at && `Resolved At: ${new Date(issue.resolved_at).toLocaleString()}`}
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </>
+        ) : (
+          <Typography>No issues detected</Typography>
+        )}
       </ContentBox>
     );
   }
@@ -243,14 +307,40 @@ export default function Dashboard() {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">Optimization Proposals</Typography>
           <Tooltip title={agentSections[4].tooltip}>
-            <IconButton size="small" sx={{ ml: 1 }}>
+            <IconButton size="small" sx={{ ml: 1 }} aria-label="Optimization info">
               <InfoIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
-        <Typography variant="body2" color="textSecondary">
-          Coming soon: AI-driven optimization suggestions.
-        </Typography>
+        {data?.optimization?.proposals ? (
+          <>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Proposals: {data.optimization.proposals.length}
+            </Typography>
+            {data.optimization.proposals.map((proposal, index) => (
+              <Accordion key={index}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="subtitle2">{proposal.description}</Typography>
+                  <Chip
+                    label={`${(proposal.confidence * 100).toFixed(0)}%`}
+                    color={proposal.is_actionable ? 'primary' : 'default'}
+                    size="small"
+                    sx={{ ml: 1 }}
+                  />
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    Status: {proposal.status} <br />
+                    Created At: {new Date(proposal.created_at).toLocaleString()} <br />
+                    {proposal.implemented_at && `Implemented At: ${new Date(proposal.implemented_at).toLocaleString()}`}
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </>
+        ) : (
+          <Typography>No optimization proposals available</Typography>
+        )}
       </ContentBox>
     );
   }
@@ -264,6 +354,7 @@ export default function Dashboard() {
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
+          zIndex: (theme) => theme.zIndex.drawer + 1,
         }}
       >
         <Toolbar>
@@ -279,6 +370,17 @@ export default function Dashboard() {
           <Typography variant="h6" noWrap component="div">
             4G/5G Network Dashboard
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          {wsStatus.isConnected ? (
+            <Chip label="Connected" color="success" size="small" sx={{ ml: 2 }} />
+          ) : (
+            <Chip label="Disconnected" color="error" size="small" sx={{ ml: 2 }} />
+          )}
+          {wsError && (
+            <Tooltip title={wsError}>
+              <Chip label="WebSocket Error" color="error" size="small" sx={{ ml: 1 }} />
+            </Tooltip>
+          )}
         </Toolbar>
       </AppBar>
 
@@ -325,7 +427,8 @@ export default function Dashboard() {
         sx={{
           flexGrow: 1,
           p: 3,
-          ml: { md: `${drawerWidth}px` }, // Fixed margin for large screens
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
           transition: 'margin-left 0.3s',
         }}
       >
@@ -334,7 +437,7 @@ export default function Dashboard() {
           {/* Data Source Config */}
           <Grid item xs={12} md={3}>
             <Paper elevation={3} sx={{ p: 2, height: '100%' }}>
-              <Accordion>
+              <Accordion defaultExpanded>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography variant="h6">Data Source Configuration</Typography>
                 </AccordionSummary>
@@ -354,9 +457,10 @@ export default function Dashboard() {
                 variant="scrollable"
                 scrollButtons="auto"
                 sx={{ mb: 2 }}
+                aria-label="Dashboard sections"
               >
                 {agentSections.map((section, index) => (
-                  <Tab key={index} label={section.label} />
+                  <Tab key={index} label={section.label} aria-label={section.label} />
                 ))}
               </Tabs>
               {agentSections[tabValue].content()}
@@ -366,4 +470,6 @@ export default function Dashboard() {
       </Box>
     </Box>
   );
-}
+};
+
+export default Dashboard;
