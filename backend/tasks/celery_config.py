@@ -3,6 +3,7 @@ from config.settings import settings
 from utils.logger import logger
 from celery.signals import worker_process_init, celeryd_after_setup
 import os
+from typing import Dict, Any
 
 # Validate required settings
 def _validate_settings() -> None:
