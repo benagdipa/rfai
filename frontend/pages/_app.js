@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo } from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { ThemeProvider, CssBaseline } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
 import { CircularProgress, Box, Typography, Button } from '@mui/material';
 import { store, persistor } from '../store'; // Adjust path
 import theme from '../styles/theme'; // Your MUI theme file

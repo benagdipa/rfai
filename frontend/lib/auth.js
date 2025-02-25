@@ -115,9 +115,13 @@ export function useAuth() {
   }, [router]);
 
   useEffect(() => {
-    fetchUser();
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchUser();
+    } else {
+      setLoading(false);
+    }
   }, [fetchUser]);
-
   const handleLogin = async (username, password) => {
     try {
       setLoading(true);
